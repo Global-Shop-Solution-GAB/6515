@@ -1,0 +1,368 @@
+﻿Program.Sub.ScreenSU.Start
+Gui.F_LocMaint..Create(BaseForm)
+Gui.F_LocMaint..Caption("Location Maint 6515")
+Gui.F_LocMaint..Size(4500,3585)
+Gui.F_LocMaint..MinX(100)
+Gui.F_LocMaint..MinY(100)
+Gui.F_LocMaint..Position(0,0)
+Gui.F_LocMaint..AlwaysOnTop(False)
+Gui.F_LocMaint..FontName("Tahoma")
+Gui.F_LocMaint..FontSize(8.25)
+Gui.F_LocMaint..ControlBox(True)
+Gui.F_LocMaint..MaxButton(True)
+Gui.F_LocMaint..MinButton(True)
+Gui.F_LocMaint..MousePointer(0)
+Gui.F_LocMaint..Moveable(True)
+Gui.F_LocMaint..Sizeable(True)
+Gui.F_LocMaint..ShowInTaskBar(True)
+Gui.F_LocMaint..TitleBar(True)
+Gui.F_LocMaint..Event(UnLoad,Unload)
+Gui.F_LocMaint.gsgc.Create(GsGridControl)
+Gui.F_LocMaint.gsgc.Enabled(True)
+Gui.F_LocMaint.gsgc.Visible(True)
+Gui.F_LocMaint.gsgc.Zorder(0)
+Gui.F_LocMaint.gsgc.Size(4305,2145)
+Gui.F_LocMaint.gsgc.Position(105,855)
+Gui.F_LocMaint.gsgc.Anchor(15)
+Gui.F_LocMaint.gsgc.Event(RowCellClick,gsgc_RowCellClick)
+Gui.F_LocMaint.gsgc.TabStop(True)
+Gui.F_LocMaint.gsgc.TabIndex(5)
+Gui.F_LocMaint.txtLoc.Create(TextBox,"",True,810,300,0,180,375,True,0,"Tahoma",8.25,,1)
+Gui.F_LocMaint.txtLoc.MaxLength(2)
+Gui.F_LocMaint.txtLoc.TabStop(True)
+Gui.F_LocMaint.txtLoc.TabIndex(1)
+Gui.F_LocMaint.lblLoc.Create(Label,"Location",True,600,195,0,180,105,True,0,"Tahoma",8.25,,0,0)
+Gui.F_LocMaint.lblLoc.BorderStyle(0)
+Gui.F_LocMaint.lblLoc.ToolTip("Add a SO Status Title here")
+Gui.F_LocMaint.cmdGo.Create(Button)
+Gui.F_LocMaint.cmdGo.Enabled(True)
+Gui.F_LocMaint.cmdGo.Visible(True)
+Gui.F_LocMaint.cmdGo.Zorder(0)
+Gui.F_LocMaint.cmdGo.Size(360,360)
+Gui.F_LocMaint.cmdGo.Position(2745,300)
+Gui.F_LocMaint.cmdGo.Caption("")
+Gui.F_LocMaint.cmdGo.FontName("Tahoma")
+Gui.F_LocMaint.cmdGo.FontSize(8.25)
+Gui.F_LocMaint.cmdGo.SvgPicture("icon_go_color")
+Gui.F_LocMaint.cmdGo.Event(Click,cmdGo_Click)
+Gui.F_LocMaint.cmdGo.TabStop(True)
+Gui.F_LocMaint.cmdGo.TabIndex(3)
+Gui.F_LocMaint.txtLocWH.Create(TextBox,"",True,1110,300,0,1260,375,True,0,"Tahoma",8.25,,1)
+Gui.F_LocMaint.txtLocWH.MaxLength(2)
+Gui.F_LocMaint.txtLocWH.TabStop(True)
+Gui.F_LocMaint.txtLocWH.TabIndex(2)
+Gui.F_LocMaint.lbl1.Create(Label,"Warehouse Loc",True,1110,195,0,1260,105,True,0,"Tahoma",8.25,,0,0)
+Gui.F_LocMaint.lbl1.BorderStyle(0)
+Program.Sub.ScreenSU.End
+
+Program.Sub.Preflight.Start
+v.Global.sLines.Declare
+V.Global.sWarehouseLoc.Declare
+Program.Sub.Preflight.End
+
+Program.Sub.Main.Start
+f.Intrinsic.Control.Try
+'Orignal project was made for KMF, delivered 10/19/21 -RF
+
+'9/14/22 This project was modified for KMF to have the ability to handle parts that start with other locations. -SS
+'Ticket:KIN050-72720222229-0
+
+
+	'Hook 28532
+	'Lot/bin screen on shipments > new
+	'000009 - PART#
+	'000030 - rev
+	'000010 - LOCATION
+	'000013 - QUANTITY
+	'000003 - WO#
+	'000004 - SUFFIX
+
+	
+	f.ODBC.Connection!con.opencompanyconnection(60)
+	
+	F.Intrinsic.Control.If(V.Caller.Hook,=,28532)
+		F.Intrinsic.Control.CallSub(BDFloop)
+		F.Intrinsic.Control.CallSub(Unload)
+	F.Intrinsic.Control.Else
+		F.Intrinsic.Control.CallSub(Loaddt)
+	F.Intrinsic.Control.EndIf
+
+	
+	
+	
+	
+f.Intrinsic.Control.Catch
+	f.Intrinsic.UI.Msgbox(v.Ambient.ErrorDescription)
+	F.Intrinsic.Control.CallSub(Unload)
+f.Intrinsic.Control.endtry
+Program.Sub.Main.End
+
+Program.Sub.Unload.Start
+F.Intrinsic.Control.Try
+
+	F.Intrinsic.Control.If(V.ODBC.con.exists)
+		f.ODBC.Connection!con.Close
+	F.Intrinsic.Control.EndIf
+	
+	F.Intrinsic.Control.End
+	
+f.Intrinsic.Control.Catch
+	f.Intrinsic.UI.Msgbox(v.Ambient.ErrorDescription)
+	f.Intrinsic.Control.End
+f.Intrinsic.Control.endtry
+Program.Sub.Unload.End
+
+Program.Sub.BDFloop.Start
+F.Intrinsic.Control.Try
+
+	'Hook 28532
+	'Lot/bin screen on shipments > new
+	'000009 - PART#
+	'000030 - rev
+	'000010 - LOCATION
+	'000013 - QUANTITY
+	'000003 - WO#
+	'000004 - SUFFIX
+	v.Local.ssql.Declare
+	v.Local.sret.Declare
+	v.Local.spart.Declare
+	v.Local.sRev.Declare
+	v.Local.sloc.Declare
+	v.Local.sUM.Declare
+	v.Local.sDesc.Declare
+	v.Local.sPL.Declare
+	v.Local.sSource.Declare
+	v.Local.sAlt.Declare
+	v.Local.sAlt2.Declare
+	v.Local.sLot.Declare
+	v.Local.sSerials.Declare
+	v.Local.sWO.Declare
+	v.Local.sSfx.Declare
+	v.Local.sReadRow.Declare
+	v.Local.sTemp.Declare
+	v.Local.fPrice.Declare
+	v.Local.fQty.Declare
+	V.Local.fQtyOnhand.Declare
+	v.Local.dTodayDate.Declare
+	v.Local.iRowCnt.Declare
+	v.Local.sSel.Declare
+	v.Local.spath.Declare
+	v.Local.i.Declare
+	
+	
+	'Grabbing WH location combinations
+	F.Data.Dictionary.CreateFromSQL("dictLoc","con","Select RTRIM(LOC), RTRIM(WAREHOUSE_LOC) FROM GCG_6515_LOC_MAINT")
+	F.Data.Dictionary.SetDefaultReturn("dictLoc","")
+
+	
+	F.Data.Datatable.Create("dtLoc",True)
+	F.Data.Datatable.AddColumn("dtLoc","LOC","String")
+	F.Data.Datatable.AddColumn("dtLoc","WAREHOUSE_LOC","String")
+	
+	'Set part
+	f.Intrinsic.String.GSSPartString(v.Local.spart,v.Local.sRev,v.Local.spart)
+	
+
+	'Grab the grid
+	f.Intrinsic.BDF.Load("AUX001","AUX001")
+	F.Intrinsic.BDF.Clone("AUX001","Clone")
+	f.Intrinsic.BDF.ReadRowCount("AUX001",v.Local.iRowCnt)
+	f.Intrinsic.Math.Sub(v.Local.iRowCnt,1,v.Local.iRowCnt)
+	
+	'Loop through all the values
+	f.Intrinsic.Control.For(v.Local.i,0,v.local.iRowCnt,1)
+		'Set the values
+		f.Intrinsic.BDF.ReadRow("AUX001",V.Local.i,v.Local.sReadRow)
+		f.Intrinsic.String.Split(v.Local.sReadRow,"|~|",v.Local.sTemp)
+		v.Local.fQty.Set(v.Local.sTemp(3))	
+		v.Local.spart.Set(v.Local.sTemp(8))
+		v.Local.sloc.Set(v.Local.sTemp(10))
+		F.Data.Datatable.AddRow("dtLoc","LOC",V.Local.sLoc.Trim)
+		F.Data.Datatable.FillFromDictionary("dtLoc","dictLoc","LOC","WAREHOUSE_LOC")
+		V.Global.sWarehouseLoc.Set(V.DataTable.dtLoc(0).WAREHOUSE_LOC!Fieldval)
+		
+		'Determine if the row is selected
+		f.Intrinsic.Control.If(v.Local.fQty,>,0)
+			'Verify the part is tagged properly in the user 2 field
+			f.Intrinsic.String.Build("SELECT DISTINCT USER2 FROM GAB_4912_USER_FIELDS WHERE PART='{0}' AND LOCATION='{1}'",v.Local.sPart.Trim,v.Local.sloc.Trim,v.Local.ssql)
+			f.ODBC.Connection!con.executeandreturn(v.Local.ssql,v.Local.sRet)
+			f.Intrinsic.Control.If(v.Local.sRet.Trim,=,"Y")	
+				
+				
+				'''''''''''''
+				'CREATE PART'
+				'''''''''''''
+				f.Intrinsic.String.Build("SELECT PART, LOCATION, PRODUCT_LINE, DESCRIPTION, UM_INVENTORY, AMT_PRICE, CODE_SOURCE, DESCRIPTION_2, DESCRIPTION_3,FLAG_LOT  from V_INVENTORY_ALL WHERE PART='{0}' AND LOCATION='{1}'",v.Local.spart,v.Local.sloc.Trim,v.Local.ssql)
+				f.ODBC.Connection!con.executeandreturn(v.Local.ssql,v.Local.sret)
+				f.Intrinsic.String.Split(v.Local.sret,"*!*",v.Local.sret)
+				V.Local.sDesc.Set(v.Local.sret(3))
+				v.Local.sPL.Set(v.Local.sret(2))
+				v.Local.sSource.Set(v.Local.sret(6))
+				v.Local.sAlt.Set(v.Local.sret(7))
+				v.Local.sAlt2.Set(v.Local.sret(8))
+				v.Local.fPrice.Set(v.Local.sret(5))
+				f.Global.Inventory.CreatePart(v.Local.sPart,v.Local.sUM,v.Local.sDesc,V.Global.sWarehouseLoc,v.Local.sPL,v.Local.sSource,v.Local.sAlt,v.Local.sAlt2,v.Local.fPrice)
+				'Take the quantity onhand in the warehouse and add to it
+				f.Intrinsic.String.Build("SELECT QTY_ONHAND from V_INVENTORY_ALL WHERE PART='{0}' AND LOCATION='{1}'",v.Local.spart,V.Global.sWarehouseLoc,v.Local.ssql)
+				f.ODBC.Connection!con.executeandreturn(v.Local.ssql,v.Local.fQtyOnhand)
+				f.Intrinsic.Math.Add(v.Local.fQty,v.Local.fQtyOnhand,v.Local.fQty)
+				
+				F.Intrinsic.Control.CallSub(UploadInv,"Part",v.Local.sPart,"Quantity",v.Local.fQty,"Lot",v.Local.sLot,"Serial",v.Local.sSerials)
+			f.Intrinsic.Control.EndIf
+		f.Intrinsic.Control.EndIf
+		F.Data.Datatable.DeleteRow("dtLoc")
+	f.Intrinsic.Control.Next(v.Local.i)
+	
+	F.Data.Dictionary.Close("dictLoc")
+	F.Data.Datatable.Close("dtLoc")
+	
+	'''''''''''''''''''''''''''''''
+	'FORMAT THE ITEM MASTER, UPLOAD
+	'''''''''''''''''''''''''''''''
+	f.Intrinsic.Control.If(v.Global.sLines.Trim,<>,"")
+		F.Intrinsic.String.Concat(v.Caller.FilesDir,"\BARINV.csv",v.Local.spath)
+		f.Intrinsic.File.String2File(v.Local.spath,v.global.sLines)
+		F.Global.Callwrapper.New("Test","Inventory.PartUpload")
+		F.Global.Callwrapper.SetProperty("Test","FileName",v.Local.spath)
+		F.Global.CallWrapper.Run("Test")
+	f.Intrinsic.Control.EndIf
+	
+	F.Intrinsic.Control.CallSub(Unload)
+
+f.Intrinsic.Control.Catch
+	f.Intrinsic.UI.Msgbox(v.Ambient.ErrorDescription)
+	F.Intrinsic.Control.CallSub(Unload)
+f.Intrinsic.Control.endtry
+Program.Sub.BDFloop.End
+
+Program.Sub.UploadInv.Start
+f.Intrinsic.Control.Try
+	'Bin/Lot/Heat/Serial
+	f.Intrinsic.String.Concat(v.global.sLines,"P16,",v.ARGS.part,",",V.Global.sWarehouseLoc,",",v.Args.Quantity,",","",",",v.Args.Lot,",","",",",v.Args.Serial,",",v.Ambient.NewLine,v.global.sLines)
+f.Intrinsic.Control.Catch
+	f.Intrinsic.UI.Msgbox(v.Ambient.ErrorDescription)
+	F.Intrinsic.Control.CallSub(Unload)
+f.Intrinsic.Control.EndTry
+Program.Sub.UploadInv.End
+
+
+Program.Sub.LoadDt.Start
+F.Intrinsic.Control.Try
+V.local.sError.Declare
+
+F.Intrinsic.Control.If(V.DataTable.dtLocData.Exists)
+	F.Data.DataTable.Close("dtLocData")
+F.Intrinsic.Control.EndIf
+
+F.Data.DataTable.CreateFromSQL("dtLocData","con","Select Rtrim(LOC) as LOC, Rtrim(WAREHOUSE_LOC) as WAREHOUSE_LOC From GCG_6515_LOC_MAINT",True)
+
+
+
+F.Data.DataTable.AddColumn("dtLocData","DELETE","Boolean")
+
+Gui.F_LocMaint.gsgc.AddGridviewFromDatatable("gvList","dtLocData")
+
+Gui.F_LocMaint.gsgc.SetGridviewProperty("gvList","OptionsViewColumnAutoWidth",False)
+Gui.F_LocMaint.gsgc.SetGridviewProperty("gvList","EnableAppearanceOddRow",True)
+
+Gui.F_LocMaint.gsgc.SetColumnProperty("gvList","LOC",V.Enum.ColumnPropertyNames!AllowEdit,False)
+Gui.F_LocMaint.gsgc.SetColumnProperty("gvList","WAREHOUSE_LOC",V.Enum.ColumnPropertyNames!AllowEdit,False)
+Gui.F_LocMaint.gsgc.SetColumnProperty("gvList","DELETE",V.Enum.ColumnPropertyNames!AllowEdit,False)
+
+Gui.F_LocMaint.gsgc.SetColumnProperty("gvList","LOC",V.Enum.ColumnPropertyNames!ReadOnly,True)
+Gui.F_LocMaint.gsgc.SetColumnProperty("gvList","WAREHOUSE_LOC",V.Enum.ColumnPropertyNames!ReadOnly,True)
+Gui.F_LocMaint.gsgc.SetColumnProperty("gvList","DELETE",V.Enum.ColumnPropertyNames!ReadOnly,False)
+
+Gui.F_LocMaint.gsgc.SetColumnProperty("gvList","LOC",V.Enum.ColumnPropertyNames!HeaderFontBold,True)
+Gui.F_LocMaint.gsgc.SetColumnProperty("gvList","WAREHOUSE_LOC",V.Enum.ColumnPropertyNames!HeaderFontBold,True)
+Gui.F_LocMaint.gsgc.SetColumnProperty("gvList","DELETE",V.Enum.ColumnPropertyNames!HeaderFontBold,True)
+
+
+Gui.F_LocMaint.gsgc.SetColumnProperty("gvList","LOC",V.Enum.ColumnPropertyNames!Caption,"Loc")
+Gui.F_LocMaint.gsgc.SetColumnProperty("gvList","WAREHOUSE_LOC",V.Enum.ColumnPropertyNames!Caption,"Warehouse Loc")
+Gui.F_LocMaint.gsgc.SetColumnProperty("gvList","DELETE",V.Enum.ColumnPropertyNames!Caption,"Delete")
+
+Gui.F_LocMaint.gsgc.SetColumnProperty("gvList","LOC",V.Enum.ColumnPropertyNames!MinWidth,55)
+Gui.F_LocMaint.gsgc.SetColumnProperty("gvList","WAREHOUSE_LOC",V.Enum.ColumnPropertyNames!MinWidth,55)
+Gui.F_LocMaint.gsgc.SetColumnProperty("gvList","DELETE",V.Enum.ColumnPropertyNames!MinWidth,55)
+Gui.F_LocMaint.gsgc.SetColumnProperty("gvList","WAREHOUSE_LOC",V.Enum.ColumnPropertyNames!Width,110)
+
+
+Gui.F_LocMaint.gsgc.ColumnEdit("gvList","DELETE","EditorButton","Delete")
+
+Gui.F_LocMaint.gsgc.MainView("gvList")
+Gui.F_LocMaint..Show
+
+
+
+F.Intrinsic.Control.Catch
+	f.Intrinsic.UI.Msgbox(v.Ambient.ErrorDescription)
+	F.Intrinsic.Control.CallSub(Unload)
+F.Intrinsic.Control.EndTry
+Program.Sub.LoadDt.End
+
+Program.Sub.cmdGo_Click.Start
+V.Local.sSQL.Declare
+V.Local.sLoc.Declare
+V.Local.sWHLoc.Declare
+V.Local.sFilter.Declare
+V.Local.sMsg.Declare
+
+F.Intrinsic.Control.Try
+V.Local.sLoc.Set(V.Screen.F_LocMaint!txtLoc.Text.Trim)
+V.Local.sWHLoc.Set(V.Screen.F_LocMaint!txtLocWH.Text.Trim)
+V.Local.sMsg.Set("Loc already exists")
+
+F.Intrinsic.Control.If(V.Screen.F_LocMaint!txtLocWH.Text,<>,"")
+	F.Intrinsic.String.Build("LOC = '{0}'",V.Local.sLoc,V.Local.sFilter)
+	F.Data.DataView.Create("dtLocData","dvList",22,V.Local.sFilter,"")
+	F.Intrinsic.Control.If(V.DataView.dtLocData!dvList.RowCount,=,0)
+		F.Intrinsic.String.Build("Insert into GCG_6515_LOC_MAINT (LOC, WAREHOUSE_LOC) Values ('{0}', '{1}');",V.Local.sLoc.PSQLFriendly,V.Local.sWHLoc.PSQLFriendly,V.Local.sSQL)
+		F.ODBC.Connection!con.Execute(V.Local.sSQL)
+
+		F.Data.DataTable.AddRow("dtLocData","LOC",V.Local.sLoc,"WAREHOUSE_LOC",V.Local.sWHLoc)
+	F.Intrinsic.Control.Else
+		F.Intrinsic.UI.Msgbox(V.Local.sMsg)
+	F.Intrinsic.Control.EndIf
+	F.Data.DataView.Close("dtLocData","dvList")
+F.Intrinsic.Control.Else
+	F.Intrinsic.UI.Msgbox("No changes were made")
+F.Intrinsic.Control.EndIf
+Gui.F_LocMaint.txtLoc.Text("")
+Gui.F_LocMaint.txtLocWH.Text("")
+Gui.F_LocMaint.txtLoc.SetFocus
+
+F.Intrinsic.Control.Catch
+	f.Intrinsic.UI.Msgbox(v.Ambient.ErrorDescription)
+	F.Intrinsic.Control.CallSub(Unload)
+F.Intrinsic.Control.EndTry
+Program.Sub.cmdGo_Click.End
+
+Program.Sub.gsgc_RowCellClick.Start
+V.Local.iRet.Declare
+V.Local.sMessage.Declare
+V.Local.sSQL.Declare
+
+F.Intrinsic.Control.Try
+'Check if they want to actually delete
+F.Intrinsic.Control.If(V.Args.Column.UCase,=,"DELETE")
+	F.Intrinsic.String.Build("Delete check on LOC {0}",V.DataTable.dtLocData(V.Args.RowIndex).LOC!FieldValTrim,V.Local.sMessage)
+	F.Intrinsic.UI.Msgbox(V.Local.sMessage,"Delete Loc",4,V.Local.iRet)
+	F.Intrinsic.Control.If(V.Local.iRet,=,V.Ambient.MsgBoxYes)
+		F.Intrinsic.String.Build("Delete From GCG_6515_LOC_MAINT where LOC = '{0}'",V.DataTable.dtLocData(V.Args.RowIndex).LOC!FieldVal,V.Local.sSQL)
+		F.ODBC.Connection!con.Execute(V.Local.sSQL)
+
+		F.Data.DataTable.DeleteRow("dtLocData",V.Args.RowIndex)
+	F.Intrinsic.Control.EndIf
+F.Intrinsic.Control.EndIf
+
+F.Intrinsic.Control.Catch
+	f.Intrinsic.UI.Msgbox(v.Ambient.ErrorDescription)
+	F.Intrinsic.Control.CallSub(Unload)
+F.Intrinsic.Control.EndTry
+Program.Sub.gsgc_RowCellClick.End
+
+Program.Sub.Comments.Start
+${$5$}$2.0.0.0$}$2
+${$6$}$sstanka$}$20220915135603813$}$mP+zz5Tw3sT2/nyap+FbWm4triMPqjXDlOEFR1OcUiCgKc3WkxeR2uP8sc8BiNmPxJrKiIrEoFg=
+Program.Sub.Comments.End
